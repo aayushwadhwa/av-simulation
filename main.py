@@ -1,3 +1,6 @@
+# The code is based on the link:
+# https://machinelearningmastery.com/how-to-develop-lstm-models-for-multi-step-time-series-forecasting-of-household-power-consumption/
+
 import data_prep as Data
 from numpy import split
 import numpy as np
