@@ -14,6 +14,9 @@ class Load:
         df.columns = ["t", "v_leader", "x_leader",
                     "v_follower", "x_follower", "v_human", "x_human", "vref"]
         df.drop("t", axis=1, inplace=True)
+        # Remove human data because prediction is form leader and the follower
+        df.drop("v_human", axis=1, inplace=True)
+        df.drop("x_human", axis=1, inplace=True)
         return df
     
     def get_data(self, dir_path, num_trajs):
