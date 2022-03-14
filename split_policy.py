@@ -77,8 +77,8 @@ class SplitPolicyBaseNew(nn.Module):
 
         self.train()
 
-    def forward(self, inputs):
-        x = inputs.clone()
+    def forward(self, x):
+        # x = inputs.clone()
         value = self.critic_full(x)
         action_feat = self.actor_delta(x)
         return value, action_feat
@@ -91,8 +91,8 @@ class StateDiagGaussianNew(nn.Module):
         self.delta_mean = nn.Linear(hidden_size, 1 * num_feet)
         self.delta_logstd = nn.Linear(hidden_size, 1 * num_feet)
 
-    def forward(self, x):
-        input = x.detach()
+    def forward(self, input):
+        # input = x.detach()
         delta_feat = input[:, :self.hidden_size]
         delta_mean = self.delta_mean(delta_feat)
         delta_logstd = self.delta_logstd(delta_feat)
