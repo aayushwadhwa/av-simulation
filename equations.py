@@ -2,17 +2,17 @@ import numpy as np
 
 class Leader:
     def __init__(self, zeta=0):
-        self.zeta = zeta
+        self.zeta = np.array([[zeta]])
         self.A = np.array([[0.8607, 0],[0.0929, 1]])
         self.B = np.array([[0.1393, 0.0929], [0.0071, 0.0048]])
         self.C = np.array([[1, 0], [0, 1]])
         self.D = np.array([[0, 0], [0, 0]])
     
     def step(self, prev_state, vref):
-        u_k = np.array([[vref], [self.zeta]])
+        u_k = np.append(vref, self.zeta, axis=1)
         # Leader Difference Equation: x(k+1) = A*x(k) + B*u_k
-        next_state = np.matmul(self.A, prev_state) + np.matmul(self.B, u_k) 
-        return next_state
+        next_state = np.matmul(self.A, prev_state.T) + np.matmul(self.B, u_k.T) 
+        return next_state.T
 
 class Follower:
     def __init__(self):

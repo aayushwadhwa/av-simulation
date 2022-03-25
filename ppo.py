@@ -48,7 +48,7 @@ class PPO():
         dist_entropy_epoch = 0
         # Check Advantage
         for e in range(self.ppo_epoch):
-            data_generator = rollouts.feed_forward_generator(advantages.detach(), self.num_mini_batch)
+            data_generator = rollouts.feed_forward_generator(advantages, self.num_mini_batch)
             for sample in data_generator:
                 obs_batch, delta_batch, return_batch, old_log_probs, adv_targ, _, _ = sample
                 # Reshape to do in a single forward pass for all steps
