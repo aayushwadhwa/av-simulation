@@ -53,6 +53,9 @@ class SplitPolicy(nn.Module):
         dist_entropy = dist.entropy().mean()
 
         return value, delta_log_probs, dist_entropy
+    
+    def get_mean_std(self):
+        return self.dist.mean, self.dist.std
 
 
 class SplitPolicyBaseNew(nn.Module):
@@ -90,10 +93,14 @@ class StateDiagGaussianNew(nn.Module):
         self.hidden_size = hidden_size
         self.delta_mean = nn.Linear(hidden_size, 1 * num_feet)
         self.delta_logstd = nn.Linear(hidden_size, 1 * num_feet)
+        self.mean = None
+        self.std = None
 
     def forward(self, input):
         # input = x.detach()
         delta_feat = input[:, :self.hidden_size]
         delta_mean = self.delta_mean(delta_feat)
         delta_logstd = self.delta_logstd(delta_feat)
+        self.mean = delta_mean
+        self.std = delta_logstd.exp()
         return FixedNormal(delta_mean, delta_logstd.exp())

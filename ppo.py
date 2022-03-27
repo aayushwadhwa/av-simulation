@@ -50,10 +50,18 @@ class PPO():
         for e in range(self.ppo_epoch):
             data_generator = rollouts.feed_forward_generator(advantages, self.num_mini_batch)
             for sample in data_generator:
-                obs_batch, delta_batch, return_batch, old_log_probs, adv_targ, _, _ = sample
+                obs_batch, delta_batch, value_preds_batch, return_batch, old_log_probs, adv_targ, _, _ = sample
                 # Reshape to do in a single forward pass for all steps
                 values, delta_log_probs, dist_entropy = self.actor_critic.evaluate_actions(obs_batch, delta_batch)
-                value_loss = 0.5 * (return_batch - values).pow(2).mean()
+                # value_loss = 0.5 * (return_batch - values).pow(2).mean()
+
+                value_pred_clipped = value_preds_batch + \
+                                         (values - value_preds_batch).clamp(-self.clip_param, self.clip_param)
+                value_losses = (values - return_batch).pow(2)
+                value_losses_clipped = (
+                            value_pred_clipped - return_batch).pow(2)
+                value_loss = 0.5 * torch.max(value_losses,
+                                                 value_losses_clipped).mean()
 
                 ratio = torch.exp(delta_log_probs -
                                   old_log_probs)
