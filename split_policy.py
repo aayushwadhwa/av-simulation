@@ -30,24 +30,24 @@ class SplitPolicy(nn.Module):
         self.base = SplitPolicyBaseNew(num_inputs)
         self.dist = StateDiagGaussianNew()
 
-    def forward(self):
+    def forward(self, masks):
         # not used
         raise NotImplementedError
 
-    def act(self, inputs):
-        value, actor_mean = self.base(inputs)
+    def act(self, inputs, masks):
+        value, actor_mean = self.base(inputs, masks)
         dist = self.dist(actor_mean)
         delta = dist.sample()
         delta_log_probs = dist.log_probs(delta)
 
         return value, delta, delta_log_probs
 
-    def get_value(self, inputs):
-        value, _ = self.base(inputs)
+    def get_value(self, inputs, masks):
+        value, _ = self.base(inputs, masks)
         return value
 
-    def evaluate_actions(self, inputs, action=None):
-        value, actor_mean = self.base(inputs)
+    def evaluate_actions(self, inputs, masks, action=None):
+        value, actor_mean = self.base(inputs, masks)
         dist = self.dist(actor_mean)
         delta_log_probs = dist.log_probs(action)
         dist_entropy = dist.entropy().mean()
@@ -80,7 +80,7 @@ class SplitPolicyBaseNew(nn.Module):
 
         self.train()
 
-    def forward(self, x):
+    def forward(self, x, masks):
         # x = inputs.clone()
         value = self.critic_full(x)
         action_feat = self.actor_delta(x)

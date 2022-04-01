@@ -10,6 +10,7 @@ class RolloutStorage(object):
         self.returns = torch.zeros(num_steps + 1, num_processes, 1)
         self.delta_log_probs = torch.zeros(num_steps, num_processes, 1)
         self.delta = torch.zeros(num_steps, num_processes, 1)
+        self.masks = torch.ones(num_steps + 1, num_processes, 1)
         self.bad_masks = torch.ones(num_steps + 1, num_processes, 1)
         self.num_steps = num_steps
         self.step = 0
@@ -22,9 +23,10 @@ class RolloutStorage(object):
         self.returns = self.returns.to(device)
         self.delta = self.delta.to(device)
         self.delta_log_probs = self.delta_log_probs.to(device)
+        self.masks = self.masks.to(device)
         self.bad_masks = self.bad_masks.to(device)
 
-    def insert(self, obs, delta, delta_log_prob, value_pred, bad_masks, obs_feat=None):
+    def insert(self, obs, delta, delta_log_prob, value_pred, masks, bad_masks, obs_feat=None):
         self.obs[self.step + 1].copy_(obs)
         if obs_feat is not None:
             self.obs_feat[self.step + 1].copy_(obs_feat)
@@ -33,12 +35,14 @@ class RolloutStorage(object):
         self.step = (self.step + 1) % self.num_steps
         self.delta[self.step].copy_(delta)
         self.delta_log_probs[self.step].copy_(delta_log_prob)
+        self.masks[self.step + 1].copy_(masks)
         self.bad_masks[self.step + 1].copy_(bad_masks)
 
 
     def after_update(self):
         self.obs[0].copy_(self.obs[-1])
         self.obs_feat[0].copy_(self.obs_feat[-1])
+        self.masks[0].copy_(self.masks[-1])
         self.bad_masks[0].copy_(self.bad_masks[-1])
 
     def compute_returns(self,
@@ -56,7 +60,7 @@ class RolloutStorage(object):
                 self.returns[-1] = next_value
                 for step in reversed(range(self.rewards.size(0))):
                     self.returns[step] = (self.returns[step + 1] * \
-                                          gamma + self.rewards[step]) * self.bad_masks[step + 1] \
+                                          gamma * self.masks[step + 1] + self.rewards[step]) * self.bad_masks[step + 1] \
                                          + (1 - self.bad_masks[step + 1]) * self.value_preds[step]
     
     def feed_forward_generator(self, advantages = None, mini_batch_size=None):
@@ -77,9 +81,10 @@ class RolloutStorage(object):
             old_delta_log_probs_batch = self.delta_log_probs.view(-1, 1)[indices]
             delta_batch = self.delta.view(-1, self.delta.size(-1))[indices]
             value_preds_batch = self.value_preds[:-1].view(-1, 1)[indices]
+            masks_batch = self.masks[:-1].view(-1, 1)[indices]
             if advantages is None:
                 adv_targ = None
             else:
                 adv_targ = advantages.view(-1, 1)[indices]
 
-            yield obs_batch, delta_batch, value_preds_batch, return_batch, old_delta_log_probs_batch, adv_targ, obs_feat_batch, next_obs_feat_batch
+            yield obs_batch, delta_batch, value_preds_batch, return_batch, masks_batch, old_delta_log_probs_batch, adv_targ, obs_feat_batch, next_obs_feat_batch
