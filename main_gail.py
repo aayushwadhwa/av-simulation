@@ -6,20 +6,20 @@ from ppo import PPO
 from running_mean_std import RunningMeanStd
 from split_policy import SplitPolicy
 from storage import RolloutStorage
-from equations import Leader, Follower
+from equations import Leader, Follower, NewSystem
 import numpy as np
 import matplotlib.pyplot as plt
 
 # TRAJECTORY_LOAD_PATH="./av-simulation/data_without_noise"
 TRAJECTORY_LOAD_PATH="./data"
-TRAJECTORY_LENGTH = 100
-TRAJECTORIES_NUM = 15 # MAX 90
-BATCH_SIZE = 100
+TRAJECTORY_LENGTH = 110
+TRAJECTORIES_NUM = 1 # MAX 90
+BATCH_SIZE = 10
 HIDDEN_SIZE = 128
 GAMMA = 0.99
 PROCESSES = 1
-STEPS = 1000
-NUM_ITR = 500
+STEPS = 100
+NUM_ITR = 100
 LAMBDA = 0.1
 
 if __name__ == "__main__":
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     device = torch.device("cpu")
     load = Load()
     data = load.get_data(TRAJECTORY_LOAD_PATH, TRAJECTORIES_NUM, TRAJECTORY_LENGTH) # Data in the form of SAS, features = 9
-    gen_data = data.iloc[:, 0:5] # Generate only needs curr state and action
+    gen_data = data.iloc[:, 0:3] # Generate only needs curr state and action
     disc_data = torch.Tensor(data.values)
     gen_data = torch.Tensor(gen_data.values)
     num_inputs_disc, num_inputs_gen = disc_data.shape[1], gen_data.shape[1]
@@ -57,6 +57,7 @@ if __name__ == "__main__":
     agent = PPO(actor_critic)
 
     leader, follower = Leader(), Follower()
+    newSystem = NewSystem()
     
     ret_rms = RunningMeanStd(shape=())
     disc_loss = []
@@ -69,14 +70,19 @@ if __name__ == "__main__":
             with torch.no_grad():
                 value, delta_pred, delta_log_probs = actor_critic.act(rollouts.obs[step], rollouts.masks[step])
             updated_gen_data = rollouts.obs[step]
+            delta_pred = delta_pred.reshape(1,2)
+            delta_log_probs = delta_log_probs.reshape(1,2)
+            prev_state = updated_gen_data[:, 0:2]
+            next_sa = newSystem.step(prev_state, delta_pred)
             # Only update follower state as we are calculating delta
-            leader_state, follower_state, vref = updated_gen_data[:, 0:2], updated_gen_data[:, 2:4], updated_gen_data[:, -1:]
-            next_leader_state = leader.step(leader_state.detach().numpy(), vref.detach().numpy())
-            follower_state = follower.step(np.array(follower_state), leader_state.detach().numpy(), delta_pred.detach().numpy())
-            next_sa = torch.cat((torch.Tensor(next_leader_state), torch.Tensor(follower_state), gen_data[step + 1, :, -1:]), 1)
-            obs_feat = torch.cat((disc_data[step, :, :-4], next_sa[:, :-1]), 1)
-            masks = torch.Tensor([[0.0] if state[1] > 45 and state[3] > 25 else [1.0] for state in next_sa])
-            bad_mask = torch.Tensor([[1.0] for pred in delta_pred])
+            # leader_state, follower_state, vref = updated_gen_data[:, 0:2], updated_gen_data[:, 2:4], updated_gen_data[:, -1:]
+            # next_leader_state = leader.step(leader_state.detach().numpy(), vref.detach().numpy())
+            # follower_state = follower.step(np.array(follower_state), leader_state.detach().numpy(), delta_pred.detach().numpy())
+            # next_sa = torch.cat((torch.Tensor(next_leader_state), torch.Tensor(follower_state), gen_data[step + 1, :, -1:]), 1)
+            next_sa = torch.tensor(next_sa)
+            obs_feat = torch.cat((disc_data[step, :, :3], next_sa[:, :2]), 1)
+            masks = torch.Tensor([[1.0] for _ in next_sa])
+            bad_mask = torch.Tensor([[1.0] for _ in delta_pred])
             rollouts.insert(next_sa, delta_pred, delta_log_probs, value, masks, bad_mask, obs_feat)
 
         print(rollouts.delta[-10:, :])
@@ -104,9 +110,9 @@ if __name__ == "__main__":
         r_sa = np.log(d_sa) - np.log(1 - d_sa) # Keep alive bonous
         d_val = []
         for step in range(num_steps):
-            delta_param =  torch.tanh(rollouts.delta[step])
+            # delta_param =  torch.tanh(rollouts.delta[step])
 
-            rollouts.rewards[step], returns = disc.get_reward( rollouts.obs_feat[step + 1], GAMMA, rollouts.masks[step], delta_param, offset=-r_sa)
+            rollouts.rewards[step], returns = disc.get_reward( rollouts.obs_feat[step + 1], GAMMA, rollouts.masks[step], delta_param = 0, offset=-r_sa)
 
             ret_rms.update(returns.view(-1).cpu().numpy())
             rews = rollouts.rewards[step].view(-1).cpu().numpy()

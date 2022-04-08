@@ -37,7 +37,7 @@ class SplitPolicy(nn.Module):
     def act(self, inputs, masks):
         value, actor_mean = self.base(inputs, masks)
         dist = self.dist(actor_mean)
-        delta = dist.sample()
+        delta = dist.sample((1,2))
         delta_log_probs = dist.log_probs(delta)
 
         return value, delta, delta_log_probs

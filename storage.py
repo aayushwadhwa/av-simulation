@@ -8,8 +8,8 @@ class RolloutStorage(object):
         self.rewards = torch.zeros(num_steps, num_processes, 1)
         self.value_preds = torch.zeros(num_steps + 1, num_processes, 1)
         self.returns = torch.zeros(num_steps + 1, num_processes, 1)
-        self.delta_log_probs = torch.zeros(num_steps, num_processes, 1)
-        self.delta = torch.zeros(num_steps, num_processes, 1)
+        self.delta_log_probs = torch.zeros(num_steps, num_processes, 2)
+        self.delta = torch.zeros(num_steps, num_processes, 2)
         self.masks = torch.ones(num_steps + 1, num_processes, 1)
         self.bad_masks = torch.ones(num_steps + 1, num_processes, 1)
         self.num_steps = num_steps

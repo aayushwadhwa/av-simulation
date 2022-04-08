@@ -11,12 +11,12 @@ class Load:
     
     def get_from_csv(self, filename, traj_length = None):
         df = pd.read_csv(filename)
-        df.columns = ["t", "v_leader", "x_leader",
-                    "v_follower", "x_follower", "v_human", "x_human", "vref"]
-        df.drop("t", axis=1, inplace=True)
+        # df.columns = ["t", "x1", "x_leader",
+        #             "v_follower", "x_follower", "v_human", "x_human", "vref"]
+        # df.drop("t", axis=1, inplace=True)
         # Remove human data because prediction is form leader and the follower
-        df.drop("v_human", axis=1, inplace=True)
-        df.drop("x_human", axis=1, inplace=True)
+        # df.drop("v_human", axis=1, inplace=True)
+        # df.drop("x_human", axis=1, inplace=True)
         if traj_length:
             return df.iloc[:traj_length, :]
         else:

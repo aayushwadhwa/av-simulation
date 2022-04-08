@@ -109,7 +109,7 @@ class Discriminator(nn.Module):
         with torch.no_grad():
             d = self.model(d)
             s = torch.sigmoid(d)
-            reward = (s + 1e-7).log() - (1 - s + 1e-7).log() + offset + delta_param
+            reward = (s + 1e-7).log() - (1 - s + 1e-7).log() + offset # + delta_param
             if self.returns is None:
                 self.returns = reward.clone()
             else:
