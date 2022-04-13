@@ -39,7 +39,7 @@ class Discriminator(nn.Module):
             nn.Linear(num_inputs, hidden_size), nn.Tanh(),
             nn.Linear(hidden_size, hidden_size), nn.Tanh(),
             nn.Linear(hidden_size, num_output)
-        )
+        ).to(device)
         self.device = device
         self.optimizer = torch.optim.Adam(self.model.parameters())
         self.model.train()
@@ -114,4 +114,4 @@ class Discriminator(nn.Module):
                 self.returns = reward.clone()
             else:
                 self.returns = self.returns * gamma * masks + reward
-            return reward, self.returns
+            return reward, self.returns, d
