@@ -37,6 +37,7 @@ class NewSystem:
         u_k = np.matmul(self.K, prev_state.T)
         # Leader Difference Equation: x(k+1) = A*x(k) + B*u_k
         next_state = np.matmul(self.A, prev_state.T) + np.matmul(self.B, u_k) + pred.T
-        u_k_1 = np.matmul(self.K, next_state)
-        next_sa = np.concatenate((next_state, u_k_1), axis=0)
-        return next_sa.T
+        # u_k_1 = np.matmul(self.K, next_state)
+        # next_sa = np.concatenate((next_state, u_k_1), axis=0)
+        # return next_sa.T
+        return next_state.T

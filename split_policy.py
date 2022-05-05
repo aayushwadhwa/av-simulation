@@ -37,7 +37,8 @@ class SplitPolicy(nn.Module):
     def act(self, inputs, masks):
         value, actor_mean = self.base(inputs, masks)
         dist = self.dist(actor_mean)
-        delta = dist.sample((1,2))
+        # delta = dist.sample((1,2))
+        delta = dist.sample()
         delta_log_probs = dist.log_probs(delta)
 
         return value, delta, delta_log_probs
@@ -50,6 +51,7 @@ class SplitPolicy(nn.Module):
         value, actor_mean = self.base(inputs, masks)
         dist = self.dist(actor_mean)
         delta_log_probs = dist.log_probs(action)
+        print(delta_log_probs)
         dist_entropy = dist.entropy().mean()
 
         return value, delta_log_probs, dist_entropy
@@ -91,8 +93,8 @@ class StateDiagGaussianNew(nn.Module):
     def __init__(self, hidden_size=64, num_feet=1):
         super(StateDiagGaussianNew, self).__init__()
         self.hidden_size = hidden_size
-        self.delta_mean = nn.Linear(hidden_size, 1 * num_feet)
-        self.delta_logstd = nn.Linear(hidden_size, 1 * num_feet)
+        self.delta_mean = nn.Linear(hidden_size, 2 * num_feet)
+        self.delta_logstd = nn.Linear(hidden_size, 2 * num_feet) # change it to 2
         self.mean = None
         self.std = None
 
